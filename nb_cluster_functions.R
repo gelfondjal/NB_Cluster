@@ -9,7 +9,9 @@ library(geepack)
 
 fit.homology.cluster <- function(tissue.counts,match.info,pheno.factor,crash.list=NULL,weight=FALSE,family=poisson,permnumber=4){
 	
-	#tissue.counts = matrix of normalized tissue count data with rows are transcripts and columns are samples
+	#calls fit.gee.5.array
+	
+	#tissue.counts = matrix with rows are transcripts and columns are samples
 	#match.info = cluster identities columns are V1[cluster identitiy] V2[target transcript matches rows in tissue.counts] V3[homology weights]
 	#pheno.factor = factor representing differential expression analysis grouping (e.g., treated or controls)
 	#crash.list = the clusters that will not be considered in analysis
@@ -33,14 +35,18 @@ fit.homology.cluster <- function(tissue.counts,match.info,pheno.factor,crash.lis
 	}
 
 
+
 fit.gee.5.array <- function(tissue.counts,match.info,pheno.factor,crash.list=NULL,weight=FALSE,perm=0,family=poisson){
 
-
-	#weights 
-	# better 0 handling
 	
-	#match.info <- matches.2.1tomany
-	#crash.list=1:1000
+	#tissue.counts = matrix with rows are transcripts and columns are samples
+	#match.info = cluster identities columns are V1[cluster identitiy] V2[target transcript matches rows in tissue.counts] V3[homology weights]
+	#pheno.factor = factor representing differential expression analysis grouping (e.g., treated or controls)
+	#crash.list = the clusters that will not be considered in analysis
+	#weight = TRUE?FALSE whether to perform homology weighted analysis
+	#family = poisson, negbinom1, quasipoisson what type of cluster model to fit
+	#perm = if nonzero how many permutations of full transcriptome (nrows(tissue.counts)*permnumber)
+	
 	
 	
 	cluster.ids <- match.info$V1
@@ -172,14 +178,14 @@ fit.gee.5.array <- function(tissue.counts,match.info,pheno.factor,crash.list=NUL
 			}
 
 
-		if(identical(family,"MGLM")){
-			temp <- dcast(gene.data,Var1 + pheno.factor ~ Var2,value.var="value")
-			y <- as.matrix(Drop.variable(temp,c("Var1","pheno.factor")))
-			x <- as.matrix(subset(temp,select="pheno.factor"))
-			gee.out <- MGLMreg(y ~ x,dist="NegMN")
-		    gee.sum <- mean(coef(gee.out)$alpha["x2",])
-			pval <- gee.out$test["x2","Pr(>wald)"]
-			}
+#		if(identical(family,"MGLM")){
+#			temp <- dcast(gene.data,Var1 + pheno.factor ~ Var2,value.var="value")
+#			y <- as.matrix(Drop.variable(temp,c("Var1","pheno.factor")))
+#			x <- as.matrix(subset(temp,select="pheno.factor"))
+#			gee.out <- MGLMreg(y ~ x,dist="NegMN")
+#		    gee.sum <- mean(coef(gee.out)$alpha["x2",])
+#			pval <- gee.out$test["x2","Pr(>wald)"]
+#			}
 
 
 		#results.fc[clust.iter,] <- 1
@@ -220,32 +226,6 @@ fit.gee.5.array <- function(tissue.counts,match.info,pheno.factor,crash.list=NUL
 	return(list(out.data=out.data,gee.list=gee.list))
 
 } # END: fit.gee.5.array
-
-
-fit.homology.cluster <- function(tissue.counts,match.info,pheno.factor,crash.list=NULL,weight=FALSE,family=poisson,permnumber=4){
-	
-	#tissue.counts = matrix with rows are transcripts and columns are samples
-	#match.info = cluster identities columns are V1[cluster identitiy] V2[target transcript matches rows in tissue.counts] V3[homology weights]
-	#pheno.factor = factor representing differential expression analysis grouping (e.g., treated or controls)
-	#crash.list = the clusters that will not be considered in analysis
-	#weight = TRUE?FALSE whether to perform homology weighted analysis
-	#family = poisson, negbinom1, quasipoisson what type of cluster model to fit
-	#permnumber = how many permutations of full transcriptome (nrows(tissue.counts)*permnumber)
-	
-	orginal <- fit.gee.5.array(tissue.counts,match.info,pheno.factor,crash.list,weight,perm=0,family)
-	permuted <- fit.gee.5.array(tissue.counts,match.info,pheno.factor,crash.list,weight,perm=permnumber,family)
-
-	oringal$corrected.pvalue <- ecdf(permuted[[1]][,"pvalue"])(original[[1]][,"pvalue"])
-
-	
-	#returns list of length 2
-	# 1-data.fram with columns V1[cluster identity] FC[fold-change] pvalue convergence [of cluster model] corrected.pvalue [permutation based pvalue]
-	# 2 list of fit objects corresponding to each cluster
-	
-	return(original)
-
-	
-	}
 
 
 timer.out <-  function(iter.list=NULL,itermax=NA,step=NA,percent=NA){
